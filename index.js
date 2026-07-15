@@ -3,7 +3,7 @@ const { createProxyMiddleware } = require('http-proxy-middleware');
 
 const app = express();
 
-// Apply global CORS headers to allow cross-origin traffic from your office
+// Apply global CORS headers
 app.use((req, res, next) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
@@ -11,26 +11,14 @@ app.use((req, res, next) => {
   next();
 });
 
-// A clean landing response for the root URL to prevent "Misdirected Request"
+// Clean landing response for the root domain
 app.get('/', (req, res) => {
   res.send('Yandex Maps Proxy Gateway is Active and Online!');
 });
 
-// Only proxy requests that explicitly look for Yandex API versions (like /2.1/)
-app.use('/2.1', createProxyMiddleware({
-  target: 'https://api-maps.yandex.ru',
-  changeOrigin: true,
-  on: {
-    proxyReq: (proxyReq, req, res) => {
-      // Set essential headers for Yandex's security layer
-      proxyReq.setHeader('host', 'api-maps.yandex.ru');
-    }
-  }
-}));
-
-// Fallback listener for dynamic subpath files requested by the loader
-app.use('/services', createProxyMiddleware({
-  target: 'https://api-maps.yandex.ru',
+// Robust catch-all route to map ALL sub-assets to Yandex securely
+app.use('/', createProxyMiddleware({
+  target: 'https://yandex.ru',
   changeOrigin: true,
   on: {
     proxyReq: (proxyReq, req, res) => {
