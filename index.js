@@ -6,16 +6,17 @@ const proxy = httpProxy.createProxyServer({});
 const server = http.createServer((req, res) => {
   const target = 'https://yandex.ru';
   
-  // Overwrite headers so Yandex processes the nested files
+  // Set essential headers for Yandex's internal routing infrastructure
   req.headers['host'] = 'api-maps.yandex.ru';
   delete req.headers['origin'];
   delete req.headers['referer'];
 
-  // Broad CORS headers to avoid browser sandbox issues
+  // Apply open CORS policies to avoid browser sandbox locks
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', '*');
 
+  // Handle immediate browser CORS preflight requests
   if (req.method === 'OPTIONS') {
     res.writeHead(200);
     res.end();
@@ -38,5 +39,5 @@ const server = http.createServer((req, res) => {
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
-  console.log(`Proxy actively routing all subpaths on port ${PORT}`);
+  console.log(`Proxy actively routing all traffic on port ${PORT}`);
 });
