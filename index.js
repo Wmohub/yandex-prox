@@ -1,39 +1,42 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Yandex Maps Proxy Test</title>
-    <!-- Replace YOUR_UNIQUE_APP_NAME below with your real Render subdomain -->
-    <script src="https://YOUR_UNIQUE_APP_://onrender.com[optimize]=https://YOUR_UNIQUE_APP_://onrender.com&host_config[vendor]=https://YOUR_UNIQUE_APP_://onrender.com" type="text/javascript"></script>
-    
-    <style>
-        #map {
-            width: 100%;
-            height: 400px;
-            background-color: #e0e0e0;
-        }
-    </style>
-</head>
-<body>
-    <h2>Testing Yandex Maps Proxy</h2>
-    <div id="map"></div>
+const http = require('http');
+const httpProxy = require('http-proxy');
 
-    <script type="text/javascript">
-        // Verifies the proxy successfully hydrated the global namespace
-        window.onload = function() {
-            if (typeof ymaps !== 'undefined') {
-                ymaps.ready(init);
-            } else {
-                console.error("Ymaps bundle missing. Clear browser cache and check Render logs.");
-            }
-        };
+const proxy = httpProxy.createProxyServer({});
 
-        function init(){
-            var myMap = new ymaps.Map("map", {
-                center: [55.76, 37.64], // Coordinates for map rendering
-                zoom: 7
-            });
-            console.log("Map successfully initialized!");
-        }
-    </script>
-</body>
-</html>
+const server = http.createServer((req, res) => {
+  const target = 'https://yandex.ru';
+  
+  // Overwrite headers so Yandex processes the nested files
+  req.headers['host'] = 'api-maps.yandex.ru';
+  delete req.headers['origin'];
+  delete req.headers['referer'];
+
+  // Broad CORS headers to avoid browser sandbox issues
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', '*');
+
+  if (req.method === 'OPTIONS') {
+    res.writeHead(200);
+    res.end();
+    return;
+  }
+
+  proxy.on('error', (err, req, res) => {
+    if (!res.headersSent) {
+      res.writeHead(500, { 'Content-Type': 'text/plain' });
+      res.end('Proxy Link Disrupted');
+    }
+  });
+
+  proxy.web(req, res, { 
+    target, 
+    changeOrigin: true,
+    followRedirects: true
+  });
+});
+
+const PORT = process.env.PORT || 3000;
+server.listen(PORT, () => {
+  console.log(`Proxy actively routing all subpaths on port ${PORT}`);
+});
