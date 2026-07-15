@@ -1,60 +1,45 @@
-const http = require('http');
-const httpProxy = require('http-proxy');
+const express = require('express');
+const { createProxyMiddleware } = require('http-proxy-middleware');
 
-const proxy = httpProxy.createProxyServer({});
+const app = express();
 
-const server = http.createServer((req, res) => {
-  const target = 'https://api-maps.yandex.ru';
-  
-  // Set headers so Yandex validates the request
-  req.headers['host'] = 'api-maps.yandex.ru';
-  delete req.headers['origin'];
-  delete req.headers['referer'];
-
-  // Global CORS policy config
+// Apply global CORS headers to allow cross-origin traffic from your office
+app.use((req, res, next) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', '*');
-
-  if (req.method === 'OPTIONS') {
-    res.writeHead(200);
-    res.end();
-    return;
-  }
-
-  // Intercept the response to rewrite .ru references to your proxy domain
-  proxy.on('proxyRes', (proxyRes, req, res) => {
-    if (proxyRes.headers['content-type'] && proxyRes.headers['content-type'].includes('javascript')) {
-      const originalWrite = res.write;
-      const originalEnd = res.end;
-      let body = '';
-
-      // Intercept data streams
-      proxyRes.on('data', (chunk) => { body += chunk; });
-      proxyRes.on('end', () => {
-        // Dynamically point Yandex sub-requests back to your unblocked proxy
-        const modifiedBody = body.replace(/api-maps\.yandex\.ru/g, '://onrender.com');
-        res.setHeader('Content-Length', Buffer.byteLength(modifiedBody));
-        originalEnd.call(res, modifiedBody);
-      });
-
-      // Prevent default pass-through execution
-      res.write = () => {};
-      res.end = () => {};
-    }
-  });
-
-  proxy.on('error', (err, req, res) => {
-    if (!res.headersSent) {
-      res.writeHead(500, { 'Content-Type': 'text/plain' });
-      res.end('Proxy Link Disrupted');
-    }
-  });
-
-  proxy.web(req, res, { target, changeOrigin: true, followRedirects: true });
+  next();
 });
 
+// A clean landing response for the root URL to prevent "Misdirected Request"
+app.get('/', (req, res) => {
+  res.send('Yandex Maps Proxy Gateway is Active and Online!');
+});
+
+// Only proxy requests that explicitly look for Yandex API versions (like /2.1/)
+app.use('/2.1', createProxyMiddleware({
+  target: 'https://api-maps.yandex.ru',
+  changeOrigin: true,
+  on: {
+    proxyReq: (proxyReq, req, res) => {
+      // Set essential headers for Yandex's security layer
+      proxyReq.setHeader('host', 'api-maps.yandex.ru');
+    }
+  }
+}));
+
+// Fallback listener for dynamic subpath files requested by the loader
+app.use('/services', createProxyMiddleware({
+  target: 'https://api-maps.yandex.ru',
+  changeOrigin: true,
+  on: {
+    proxyReq: (proxyReq, req, res) => {
+      proxyReq.setHeader('host', 'api-maps.yandex.ru');
+    }
+  }
+}));
+
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => {
-  console.log(`Dynamic text-replacement proxy active on port ${PORT}`);
+app.listen(PORT, () => {
+  console.log(`Express proxy server running smoothly on port ${PORT}`);
 });
