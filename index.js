@@ -1,47 +1,39 @@
-const http = require('http');
-const httpProxy = require('http-proxy');
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Yandex Maps Proxy Test</title>
+    <!-- Replace YOUR_UNIQUE_APP_NAME below with your real Render subdomain -->
+    <script src="https://YOUR_UNIQUE_APP_://onrender.com[optimize]=https://YOUR_UNIQUE_APP_://onrender.com&host_config[vendor]=https://YOUR_UNIQUE_APP_://onrender.com" type="text/javascript"></script>
+    
+    <style>
+        #map {
+            width: 100%;
+            height: 400px;
+            background-color: #e0e0e0;
+        }
+    </style>
+</head>
+<body>
+    <h2>Testing Yandex Maps Proxy</h2>
+    <div id="map"></div>
 
-// Initialize the proxy agent
-const proxy = httpProxy.createProxyServer({});
+    <script type="text/javascript">
+        // Verifies the proxy successfully hydrated the global namespace
+        window.onload = function() {
+            if (typeof ymaps !== 'undefined') {
+                ymaps.ready(init);
+            } else {
+                console.error("Ymaps bundle missing. Clear browser cache and check Render logs.");
+            }
+        };
 
-const server = http.createServer((req, res) => {
-  // Core target URL
-  const target = 'https://api-maps.yandex.ru';
-  
-  // Set essential headers for Yandex's router infrastructure
-  req.headers['host'] = 'api-maps.yandex.ru';
-  delete req.headers['origin'];
-
-  // Apply open CORS policies to avoid browser sandbox locks
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', '*');
-
-  // Handle immediate browser CORS handshakes
-  if (req.method === 'OPTIONS') {
-    res.writeHead(200);
-    res.end();
-    return;
-  }
-
-  // Handle stream disruptions gracefully 
-  proxy.on('error', (err, req, res) => {
-    if (!res.headersSent) {
-      res.writeHead(500, { 'Content-Type': 'text/plain' });
-      res.end('Proxy Link Disrupted');
-    }
-  });
-
-  // Execute web forwarding with absolute path verification
-  proxy.web(req, res, { 
-    target, 
-    changeOrigin: true,
-    followRedirects: true,
-    ignorePath: false // Forces the proxy to preserve the exact URL query paths
-  });
-});
-
-const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => {
-  console.log(`Proxy actively serving requests on port ${PORT}`);
-});
+        function init(){
+            var myMap = new ymaps.Map("map", {
+                center: [55.76, 37.64], // Coordinates for map rendering
+                zoom: 7
+            });
+            console.log("Map successfully initialized!");
+        }
+    </script>
+</body>
+</html>
