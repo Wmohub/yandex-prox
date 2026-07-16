@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Yandex Map with Multiple Circles + Labels</title>
+  <script src="https://api-maps.yandex.ru/2.1/?lang=en_US" type="text/javascript"></script>
+  <style>
+    #map { width: 600px; height: 600px; }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+  <script>
+    ymaps.ready(init);
+    function init(){
+      var input = prompt("Enter points as lat,lon,radius,label,...");
+      if(!input) return;
+      var parts = input.split(",");
+      if(parts.length < 4){ alert("Need at least lat,lon,radius,label"); return; }
+
+      // Center map on first point
+      var lat0 = parseFloat(parts[0]);
+      var lon0 = parseFloat(parts[1]);
+      var center = [lat0, lon0];
+
+      var map = new ymaps.Map("map", {
+        center: center,
+        zoom: 7
+      });
+
+      // Process in groups of 4
+      for(var i=0; i<parts.length; i+=4){
+        var lat = parseFloat(parts[i]);
+        var lon = parseFloat(parts[i+1]);
+        var radius = parseFloat(parts[i+2]);
+        var label = parts[i+3];
+
+        if(isNaN(lat) || isNaN(lon) || isNaN(radius) || !label) continue;
+
+        var point = [lat, lon];
+
+        // Marker with visible label
+        var placemark = new ymaps.Placemark(point, {
+          balloonContent: label,
+          iconContent: label   // <-- this makes the label appear on the map
+        }, {
+          preset: 'islands#redStretchyIcon'
+        });
+        map.geoObjects.add(placemark);
+
+        // Circle
+        var circle = new ymaps.Circle([point, radius], {
+          balloonContent: "Circle radius " + radius + " m ("+label+")"
+        }, {
+          fillColor: '#ff000033',
+          strokeColor: '#ff0000',
+          strokeWidth: 2
+        });
+        map.geoObjects.add(circle);
+      }
+    }
+  </script>
+</body>
+</html>
